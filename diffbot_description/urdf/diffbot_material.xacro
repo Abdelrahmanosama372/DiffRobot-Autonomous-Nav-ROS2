@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<robot name="diffbot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <gazebo reference="base_link">
+      <material>Gazebo/Orange</material>
+  </gazebo>
+  <gazebo reference="wheel_right_link">
+      <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="wheel_left_link">
+      <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="caster_front_link">
+      <material>Gazebo/White</material>
+  </gazebo>
+  <gazebo reference="caster_rear_link">
+      <material>Gazebo/White</material>
+  </gazebo>
+
+</robot>
