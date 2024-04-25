@@ -1,0 +1,18 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    simple_velocity_controller:
+      type: velocity_controllers/JointGroupVelocityController
+
+
+simple_velocity_controller:
+  ros__parameters:
+    joints:
+      - wheel_right_joint
+      - wheel_left_joint
+
+  
