@@ -7,14 +7,36 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 install(
   DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+include_directories(include/diffbot_controllers/)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+add_executable(simple_controller src/simple_controller.cpp)
+ament_target_dependencies(simple_controller rclcpp geometry_msgs std_msgs ${Eigen_LIBRARIES} sensor_msgs nav_msgs tf2 tf2_ros)
+
+add_executable(noisy_controller src/noisy_controller.cpp)
+ament_target_dependencies(noisy_controller rclcpp geometry_msgs std_msgs sensor_msgs nav_msgs tf2 tf2_ros)
+
+
+
+install(
+  TARGETS simple_controller noisy_controller
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

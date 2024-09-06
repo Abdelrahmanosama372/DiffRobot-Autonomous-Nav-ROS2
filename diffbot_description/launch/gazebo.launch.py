@@ -1,40 +1,28 @@
-import os
 from launch import LaunchDescription
-from launch.conditions import IfCondition
-from launch.actions import SetEnvironmentVariable, IncludeLaunchDescription, DeclareLaunchArgument
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
-from ament_index_python.packages import get_package_prefix, get_package_share_directory
-
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
+from launch.substitutions import Command, LaunchConfiguration
+from launch.actions import IncludeLaunchDescription, AppendEnvironmentVariable
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument 
+from launch.conditions import IfCondition
+import os
 
 def generate_launch_description():
-  
-    diffbot_description_share_Dir = get_package_share_directory("diffbot_description")
-    diffbot_description_prefix = get_package_prefix("diffbot_description")
-    gazebo_ros_share_Dir = get_package_share_directory("gazebo_ros")
 
-
-    launch_rviz_arg = DeclareLaunchArgument(
-        name="launch_rviz",
-        default_value="true",
-        description="launch rviz?"
+    use_rviz_arg = DeclareLaunchArgument(name="use_rviz", 
+        default_value="False",                 
     )
 
-    launch_rviz = LaunchConfiguration("launch_rviz")
+    use_rviz = LaunchConfiguration("use_rviz")
+
+    diffbot_description_share_Dir = get_package_share_directory("diffbot_description")
+    diffbot_description_prefix = get_package_prefix("diffbot_description")
 
 
-    gazebo_model_path = os.path.join(diffbot_description_share_Dir, "models")
-    gazebo_model_path += os.pathsep + os.path.join(diffbot_description_prefix, "share")
-    env_var = SetEnvironmentVariable("GAZEBO_MODEL_PATH", gazebo_model_path)
-
-
-    robot_description = ParameterValue(Command(
-        ["xacro ",os.path.join(
-                        diffbot_description_share_Dir,"urdf","diffbot.urdf.xacro")]
-        ),value_type=str)
-
+    robot_description = Command(["xacro ",
+                                      os.path.join(diffbot_description_share_Dir,
+                                      "urdf","diffbot.urdf.xacro")])
 
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
@@ -46,36 +34,48 @@ def generate_launch_description():
         package="rviz2",
         executable="rviz2",
         output="screen",
-        arguments=["-d",os.path.join(diffbot_description_share_Dir,"rviz","display.rviz")],
-        condition=IfCondition(launch_rviz)
+        arguments=["-d",os.path.join(
+                    diffbot_description_share_Dir,"rviz/display.rviz")],
+        condition=IfCondition(use_rviz)
     )
 
-    gazebo_server = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(gazebo_ros_share_Dir,"launch","gzserver.launch.py")
-        )
+    world = os.path.join(
+        diffbot_description_share_Dir, 
+        "worlds", 
+        "empty_world.sdf"
     )
+
+    env_var = AppendEnvironmentVariable(
+        "GZ_SIM_RESOURCE_PATH",
+        os.path.join(diffbot_description_prefix, "share"))
     
-
-    gazebo_client = IncludeLaunchDescription(
+    gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(gazebo_ros_share_Dir,"launch","gzclient.launch.py")
-        )
+            os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
+        ),
+        launch_arguments={'gz_args': ['-r -s -v4 ', world] , 'on_exit_shutdown': 'true'}.items()
     )
 
-    spawn_robot_node = Node(
-        package="gazebo_ros",
-        executable="spawn_entity.py",
-        arguments=["-entity","diffbot", "-topic","robot_description"],
-         output="screen"
+    gzclient_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
+        ),
+        launch_arguments={'gz_args': '-g -v4 '}.items()
+    )
+
+    start_gazebo_ros_spawner_cmd = Node(
+        package="ros_gz_sim",
+        executable="create",
+        arguments=["-name", "diffbot","-string", robot_description],
+        output="screen"
     )
 
     return LaunchDescription([
-        launch_rviz_arg,
         env_var,
-        gazebo_server,
-        gazebo_client,
+        use_rviz_arg,
         robot_state_publisher_node,
+        gazebo_launch,
+        gzclient_cmd,
+        start_gazebo_ros_spawner_cmd,
         rviz_node,
-        spawn_robot_node
     ])
