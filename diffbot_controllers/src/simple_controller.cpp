@@ -40,8 +40,8 @@ void SimpleController::vel_callback(const geometry_msgs::msg::Twist &msg){
     Eigen::Vector2d wheels_vel = speed_conversion.inverse() * speed;
 
     std_msgs::msg::Float64MultiArray cmd_vel;
-    cmd_vel.data.push_back(wheels_vel.coeff(0));
     cmd_vel.data.push_back(wheels_vel.coeff(1));
+    cmd_vel.data.push_back(wheels_vel.coeff(0));
 
     RCLCPP_INFO_STREAM(get_logger(), "publishing data to /simple_velocity_controller/commands ... \n" 
         << wheels_vel.coeff(0) << " " << wheels_vel.coeff(1));
