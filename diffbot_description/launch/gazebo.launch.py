@@ -1,7 +1,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration, PythonExpression, PathJoinSubstitution
 from launch.actions import IncludeLaunchDescription, AppendEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument 
@@ -39,15 +39,18 @@ def generate_launch_description():
         condition=IfCondition(use_rviz)
     )
 
-    world = os.path.join(
+    world_name_arg = DeclareLaunchArgument("world_name", default_value="empty_world")
+    world = PathJoinSubstitution([
         diffbot_description_share_Dir, 
         "worlds", 
-        "empty_world.sdf"
+        PythonExpression(expression=["'",LaunchConfiguration("world_name"),"'", " + '.world'"])]
     )
 
     env_var = AppendEnvironmentVariable(
         "GZ_SIM_RESOURCE_PATH",
-        os.path.join(diffbot_description_prefix, "share"))
+        os.path.join(diffbot_description_prefix, "share")
+        + ":"
+        + os.path.join(diffbot_description_share_Dir, "models"))
     
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -70,12 +73,32 @@ def generate_launch_description():
         output="screen"
     )
 
+
+    bridge_params = os.path.join(
+        diffbot_description_share_Dir,
+        'params',
+        'diffbot_bridge.yaml'
+    )
+
+    start_gz_ros_bridge_cmd = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '--ros-args',
+            '-p',
+            f'config_file:={bridge_params}',
+        ],
+        output='screen',
+    )
+
     return LaunchDescription([
         env_var,
         use_rviz_arg,
+        world_name_arg,
         robot_state_publisher_node,
         gazebo_launch,
         gzclient_cmd,
         start_gazebo_ros_spawner_cmd,
         rviz_node,
+        start_gz_ros_bridge_cmd,
     ])

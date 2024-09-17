@@ -12,7 +12,7 @@ find_package(urdf REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-install(DIRECTORY urdf launch rviz meshes worlds
+install(DIRECTORY urdf launch rviz meshes worlds models params
         DESTINATION share/${PROJECT_NAME})   
 
 if(BUILD_TESTING)
