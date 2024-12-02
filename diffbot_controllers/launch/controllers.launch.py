@@ -1,9 +1,10 @@
+import os
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.conditions import IfCondition, UnlessCondition
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
-
+from ament_index_python.packages import get_package_share_directory 
 
 def noisy_controller(context, *args, **kwargs):
     wheel_raduis = float(LaunchConfiguration("wheel_raduis").perform(context))
@@ -49,11 +50,16 @@ def generate_launch_description():
         default_value="0.02"
     )
 
+    use_sim_time_arg = DeclareLaunchArgument(
+        name="use_sim_time",
+        default_value="True"
+    )
 
     wheel_raduis = LaunchConfiguration("wheel_raduis")
     wheel_separation = LaunchConfiguration("wheel_separation")
+    use_sim_time = LaunchConfiguration("use_sim_time")
 
-
+    diffbot_controller_pkg = get_package_share_directory('diffbot_controllers') 
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
@@ -65,7 +71,7 @@ def generate_launch_description():
     velocity_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["simple_velocity_controller",
+        arguments=["diffbot_controller",
                    "--controller-manager","/controller_manager"]
     )
 
@@ -81,6 +87,21 @@ def generate_launch_description():
         ],
     )
 
+    twist_mux_node = IncludeLaunchDescription(
+        os.path.join(
+            get_package_share_directory("twist_mux"),
+            "launch",
+            "twist_mux_launch.py"
+        ),
+        launch_arguments={
+            "cmd_vel_out": "diffbot_controller/cmd_vel_unstamped",
+            "config_locks": os.path.join(diffbot_controller_pkg, "config", "twist_mux_locks.yaml"),
+            "config_topics": os.path.join(diffbot_controller_pkg, "config", "twist_mux_topics.yaml"),
+            "config_joy": os.path.join(diffbot_controller_pkg, "config", "twist_mux_joy.yaml"),
+            "use_sim_time": use_sim_time,
+        }.items(),
+    )
+
     noisy_controller_launch = OpaqueFunction(function=noisy_controller)
 
     return LaunchDescription(
@@ -89,9 +110,11 @@ def generate_launch_description():
             wheel_separation_arg,
             wheel_raduis_error_arg,
             wheel_separation_error_arg,
+            use_sim_time_arg,
             joint_state_broadcaster_spawner,
             velocity_controller_spawner,
-            noisy_controller_launch,
-            simple_controller_node
+            twist_mux_node,
+            #noisy_controller_launch,
+            #simple_controller_node
         ]
     )
