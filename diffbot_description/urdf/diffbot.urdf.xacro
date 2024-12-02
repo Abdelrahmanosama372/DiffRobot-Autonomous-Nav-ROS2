@@ -6,7 +6,7 @@
   <xacro:include filename="$(find diffbot_description)/urdf/diffbot_gazebo.xacro" />
   <xacro:include filename="$(find diffbot_description)/urdf/diffbot_material.xacro" />
   
-  <link name="world"/>
+  <link name="base_footprint"/>
   
   <link name="base_link">
     <inertial>
@@ -31,7 +31,7 @@
   </link>
 
   <joint name="base_joint" type="fixed">
-    <parent link="world"/>
+    <parent link="base_footprint"/>
     <child link="base_link" />
     <origin xyz="0 0 0.033" rpy="0 0 0"/>
   </joint>
